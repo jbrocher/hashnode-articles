@@ -23,7 +23,43 @@ the app in a Docker container so you'll need to have it installed on your machin
 
 ### The docker image
 
-First create a `Dockerfile` at the root of your working directory, and write the following instructions in it : 
+
+First we need to install a few dependencies and we'll use [poetry](https://python-poetry.org/docs/) to manage them. Poetry is a modern package manager for python, that also helps you setup your virtual environment. If you don't have poetry, don't worry ! The [installation instructions](https://python-poetry.org/docs/#osx--linux--bashonwindows-install-instructions) are straightforward, and its use is pretty intuitive. 
+
+To initialize the project run `poetry init` and follow the instructions. The packages we want to install are : 
+ - FastAPI: The FastAPI framework ❤️
+ - Uvicorn: The ASGI server that will run our app
+
+Once you're done you should see a `pyproject.toml` file at the root of your project resembling that one: 
+
+```toml
+
+#pyproject.toml
+
+[tool.poetry]
+name = "fastapi-poll-1"
+version = "0.1.0"
+description = ""
+authors = ["io.io"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+fastapi = "^0.70.0"
+uvicorn = "^0.15.0"
+
+[tool.poetry.dev-dependencies]
+black = "^21.9b0"
+reorder-python-imports = "^2.6.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+
+```
+
+
+Now let's create a the Dockerfile for our app! You can create it at the root of your working directory, and add the following instructions in it: 
 
 
 ```python 
@@ -54,7 +90,7 @@ CMD ["uvicorn", "app.main:app", "--reload", "--host", "0.0.0.0", "--port", "80"]
 
 This needs a bit of commenting. 
 
-The way dependencies are installed might seems a bit strange. Here we use `poetry` as a package manager, so we need to install it first and
+The way dependencies are installed might seems a bit strange. We need to first install poetry, 
 then run `install` without creating a virtual env (that `--no-root` bit). What's great about this approach is that you can use
 the same `pyproject.toml` in your developement environment so things like static analysis tools uses the same dependencies. In a production 
 settings we would probably creat a multi-stage build and discard `poetry` to have a slimer image. 
