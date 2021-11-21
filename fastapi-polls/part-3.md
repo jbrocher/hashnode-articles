@@ -1,22 +1,30 @@
 ## Introduction
 
- - Welcome to part 3 of the FastAPI tutorial
- - We'll pick up where we left off in part 2 where we set up the database
- - Today as in part 3 of django tutorial we'll create a views to dipslay the list of question and their results
- - Their is a key differnce though, as we're not working with a monolithe like Django. FastAPI is only concerned with build the API, and doesn't handle 
- rendering the ui (well except for the brillant automatic documentation)
- - This means we need to build the UI separatly, and we'll use reactjs for that!
+*Note: This is part 3 of a multi-part tutorial on FastApi and React, if you've not read the previous part, start [here](https://dev.indooroutdoor.io/the-poll-app-from-django-tutorial-with-fastapi-and-react-1) !*
 
- - Menu: 
-  - Creating the CRUD endpoints using pydantic and SQLAlchemy
-  - Creating a small SPA in React with `create-react-app` to display the result
+
+Welcome to part 3 of the tutorial, today we'll see how to use path operations to return information from our Database. It's CRUD time ! We'll start with R though ! 😋
+
+Last time in part 2, we set up our Postgres Database, wrote the models and generated the associated migrations. Today we'll pick up where we left off and start doing something useful with our endpoints: returning some information stored in the DB. 
+
+As in the Django tutorial we'll display the list of existing polls, and the associated results. There is one key difference though. Django being a [monolithic Framework](https://en.wikipedia.org/wiki/Monolithic_application), it handles both querying the database AND rendering the resulting information to the client using an HTML templating language. FastAPI, however is only concerned with the API side of things, meaning we'll have to build the UI separately. 
+
+We'll use React and the excellent [create-react-app](https://reactjs.org/docs/create-a-new-react-app.html) to build the UI. I initially did both - The CRUD and the UI - in this article, but it ended up being super long so I decided to split it. I'll post the React part later this week so stay tuned ! 🚀
+
+
+On Today's Menu: 
+  - Creating some CRUD utilities
+  - Using path operations to expose some information from our database
 
 
 ## Crud
- - Thanks to the work we did last time, our database is already configure. Spin everything up with `docker-compose up ` and let's get coding
- - The first thing we'll do is creating some crud utilities for reading from our database. Add a `crud.py` file in your poll app, and create those two functions: 
- - We'll creat a function to list all the existing question and a specific one by filtering on its id
- - We'll use SQLAlchmey for quering the database
+
+It's time to rip the benefits of all the set up we did in part 2. Thanks to our previous work, our database if already fully, set up so run `docker-compose up` from the root of the project to spin up everything and let's get coding! The first thing we'll do is creating some crud utilities for reading from our database.  Well create two functions:
+ - `get_question` to fetch a specific question based on an ID; 
+ - `list_questions` to list all the existing polls
+
+Add a `crud.py` file in your poll app and write the following code in it:
+
 
  ```python
 
@@ -40,8 +48,12 @@ def list_questions(db: Session):
     questions = db.execute(question_query).scalars().all()
     return questions
 ```
-- last time I talked about how sqlalhemy make queryin the Database more expiclit, here we are !
-- the `select(models.Question).where(models.Question.id == question_id)` is equivalent to the following SQL statement : 
+
+He're we're using a Session object to communicate with the database using our orm, SQLAlchemy. We'll worry about passing a session to our functions later, for now let's just assume we have one. As you can see, SQLAlchemy once again is a bit more explicit in its use than `django-orm`. The querying syntax looks a lot like SQL, and that's what I like it so much: if you'realready comfortable working with SQL, learning to use SQLAlchemy is a breeze! 
+
+*Yes I am aware I've written SQLAlchemy 3 times in 3 sentences, and here's another one for your trouble*
+
+For example `select(models.Question).where(models.Question.id == question_id)` is equivalent to the following SQL statement: 
 
  ```sql
 
@@ -53,9 +65,16 @@ def list_questions(db: Session):
 
   ```
 
-- As you can see, it very similar. This means that if you're confident with SQL , you'll peek up SQLAlchemy queryng sytem in no time !
-- The only thing that might not be obvious here is the way the related choices are fetched. In SQL land we'd need to perform the following join to 
-get the choices associated with each question (and thus created duplicated questions). 
+The structure is almost exactly the same, the table name are simply replaced with our models name !
+
+<center>
+
+![pam nice](https://media.giphy.com/media/3oEjHYibHwRL7mrNyo/giphy.gif)
+
+</center>
+
+The only thing that might not be obvious here is the way the related choices are fetched. In SQL land we'd need to perform the following join to 
+get the choices associated with each question (and in so doing, creating duplicate questions in the results !). 
 
 ```SQL
 
@@ -71,15 +90,15 @@ With SQLAlchemy, the [relationship](https://docs.sqlalchemy.org/en/14/orm/relati
 
 ## Pydantic models
 
-- Now that ou CRUD is ready, we need a way to serialize our answer. That's where pydantic comes in
-- We used it last time to load our environment variables, but it can do much more !
-- They play the same role as DRF serializers:
-  - Deserialzer and validate intpu from outside the API
-  - Serializer and validate output from our endpoint
+Now that our CRUD is ready, we'll also need a way to convert the results into  a format that can be send in an HTTP response. [Pydantic](https://pydantic-docs.helpmanual.io/)  will take care of that for us ! We already used it in part 2 to load our environment variables, but it can do much more ! If you're familiar with DRF pydantic *models*, they fill the same functino as DRF's serializers:
+  - Deserializing and validating input from outside the API
+  - Serializing and validating output from our endpoints
 
-- One last thing before we dive in : pydantic also uses the term "models" like SQLAlchemy. This tends to make this kind of tutorial a bit confusing if it's your first time workng with pydantic. Thus (like in the Fastapi doc) I will be refering to Pydantic models as Schemas !
+Regarding validations errors, it's important to note that error raise when deserializing the data from a request will automatically rais a 422 HTTP error, while validation error when serializer the endpionts output will raise an unhandled exception. This is because a validation error when serializing data on which we have complete control point to a configuration error on our part, and not a user error.
 
-With this out of the way, let's write the necessary schemas to serialze our questions. Add a  `schemas.py` file to your poll app, and create the followig models : 
+One last thing before we dive in: pydantic like SQLAlchemy uses the term "model". This tends to make this kind of tutorial a bit confusing if it's your first time workng with both. Thus from now on, like in the Fastapi doc,  I will be refering to Pydantic models as *schemas*!
+
+With this out of the way, let's write schemas we need to serialize the our CRUD's ouput. Add a `schemas.py` file to your poll app, and create the following *schemas* : 
 
 ```python
 
@@ -110,25 +129,25 @@ class Question(pydantic.BaseModel):
 
 
 class ReadQuestionChoices(ReadQuestion):
+    id: int
+    question_text: str
+    pub_date: datetime.datetime
     choices: List[BaseChoice]
+
+    class Config:
+        orm_mode = True
 ```
 
+Contrary to DRF theres is no out-of-the-box way to generate the schemas from the ORM declaration. However as you can see the `Question` *schema* and the `Question` *model*, are *very* similar. This is not ideal, as this can lead to a bit of code duplication. 
 
- - Contray to DR there is no way out of the box to generate pydantic models from sqlalchemy models
- - Talking about models for pydantic and sqlalchemy can be confusing, so like in the FastAPI doc, when refering to pydantic we'll use the workd "schema" instead
- - All of this is still a wip in FastAPI, a solution is being developed 
-  - SQLmodel
-  - The solution from reddit user
- - All of this is not ideal, and lead to a bit of code duplication, as there are a lot of common logics between the pydantic schemas, and SQLAlchemy models. Tiangolo, the author of FastAPI, got us covered tho ! A months ago he released [SQLModel](https://sqlmodel.tiangolo.com/) a library  that aims to fill that gap by wrapping Pydantic and SQLAlchemy. 
- - I will not dive more into it during the early part of this tutorial tho, as I believe it's important to understand the problem a tool is designed to solve before using it !
- - We can use Recursive models, and they will be able to read from our models relationships !
+[Tiangolo](https://twitter.com/tiangolo), the author of FastAPI, got us covered tho ! A few months ago he released [SQLModel](https://sqlmodel.tiangolo.com/), a library  that aims to fill that gap by wrapping Pydantic and SQLAlchemy. I will not dive more into it for now, , as I believe it's important to understand the problem a tool is designed to solve before using it! I might do a dedicated article later in this tutorial though ! 
 
 
- - the orm mode here allows Pydantic to use SQLAlchemy attributes. This also means that when serializing our reponse, if we use the `ReadQuestionChoices` schemas, it will automatically perfomr the join I was mentionning earlier, and offer us a nice nested structure where each question is associated with an array of related choices.
- - We can still simplyfi these models a bit though, as Pydantic support, before moving on to the endpoint, we'll factor the common attribtes between `ReadQuestion` and `ReadQuestionChoices`: 
+Of note here is the use of nested *schemas*, and the orm modes. Setting `orm_mode` to true means that pydantic will know to access the attributes with the `object.attribute` syntax rather than `dict['key']`. And when accessing the `choices` attribute, SQLAlchemy will take care of making the necessary joins, which will offer us a nice nested structure where each question is associated with an array of related choices.
+
+One last thing: you might have noticed than `ReadQuestion` and `ReadQuestionChoices` have most of their attributes in common, which is not very DRY. Pydantic support inheriting from existing schemas though, which means we can re-write it like that: 
 
 ```python
-
 
 import datetime
 from typing import List
@@ -162,19 +181,18 @@ class ReadQuestion(BaseQuestion):
 class ReadQuestionChoices(ReadQuestion):
     choices: List[BaseChoice]
 ```
-- There all good ! 
 
-## Endpiont 
+ There all good ! 
 
- - Let's implement the endpoints ! 
- - In Django's tutorial, there are 3 views: 
-  - The index view: Listing the existing questions
-  - The detail view: Listing the choices associated with question. Later used to render the form;
-  - The results view: Listing the results of the questions
+## Building the Endpoints 
 
-However we're not building a monolith here ! We'll be using React in the next section to create the UI. There we'll be creating these 3 views but for now we're on the API side of things and we only need 2 endpoints: 
+Now we've got all the tools we need to create our path operations ! 
+
+We'll need to read endpoints:
   - An endpoint to list the existing questions: `/polls/`;
   - And endpiont to dipslay the details of the questins: `/polls/{id}`
+
+In the Django tutorial, more *views* are built, because the views are also responsible for rendering the UI, so there need to be at least one per page. However, we're not building a monolith here ! The *pages* will be created in React in part 4, and the form and result page, for example, will both use the `GET /polls/{id}` endpoint to fetch the data they need. 
 
 
 In `polls/endpoints.py` create those two path operations : 
@@ -281,7 +299,7 @@ async def question_detail(id: int, db=Depends(get_db)):
 
 ```
 
-Now everything should be working ! You can try out your endpoints using the automatic documentation available at `localhost/docs`. Create a few questions using [PGAdmin](https://dev.indooroutdoor.io/building-the-poll-app-from-the-django-tutorial-with-fastapi-and-react-2) or a psql client to create a few questions and choices, and try it out ! 
+Now everything should be working ! You can try out your endpoints using the automatic documentation available at `localhost/docs`. Create a few questions using [PGAdmin](https://dev.indooroutdoor.io/building-the-poll-app-from-the-django-tutorial-with-fastapi-and-react-2) or a psql client to create a few questions and choices, and try it out ! Everyting should be working smootlhy, and Swagger should display some information about the reponse form that matches our pydantic *schemas*.
 
 <center>
 
@@ -290,9 +308,7 @@ Now everything should be working ! You can try out your endpoints using the auto
 </center>
 
 
-Awesome ! But we this isn't enough for our end user tho, we can't ask them to use our poll app using the automatic documentation... we need something better !
-
-We need to do one last thing before we start building our UI though, setting the cors headers so the browser let our SPA make request to the FastAPI app. This is pretty straightforward, we just need to use the `CORSMiddleware` in `main.py`: 
+Awesome ! There is one last thing to do before we conclude. If we want to be able to make request from our UI to our API in part4, we need to take care of these pesky CORS headers. In the past setting those headers correctly as been the cause of many headaches, for many developers. With FastAPI howerver, nothing's more simple ! We just need to use the `CORSMiddleware` in `main.py`: 
 
 
 ```python
@@ -319,147 +335,16 @@ app.add_middleware(
 ...
 ```
 
+Great ! Now we're ready to build an UI to talk with our brand new API ! 
 
 
-## Let's build an UI ! 
+## Conclusion
 
-We'll use [Create React App](https://reactjs.org/docs/create-a-new-react-app.html) to build our UI in React. CRA is an awesome collection that take care of bundling, transpiling, and allthe boilerplate code you might need to setup at the begining of a react project. This way we can get straight to coding ! 
+ That's it for today, hope you enjoyed it ! Part 4 we'll be coming soon, and we'll be focused on building an UI for our endpoints using React. I'm still debating if I should put everything React-relate into specific articles, I'd be glad to know what you think. Let me know on [Twitter](https://twitter.com/JiBRocher), you feedback is invaluable ! 
 
-For this tutorial, our UI Will live in the same project than our API. From the root of the project run the following command to create the UI : 
+## References
 
- - `yarn create react-app ui --template typescript`
+1. [FastAPI CRUD](https://fastapi.tiangolo.com/tutorial/sql-databases/?h=crud#crud-utils)
+2. [Pydantic Documentation](https://pydantic-docs.helpmanual.io/)
+3. [SLQModel](https://sqlmodel.tiangolo.com/)
 
- OR if you prefer npm
-
- - `npx create-react-app ui --template typescript`
-
-Note: We'll be using typescript for this tutorial. Don't worry you don't need to have a deep understanding of types to follow along tho, we'll stay pretty basic ! This will mainly prevent us to make mistakes when using data coming from the API.
-
-### Installing the dependencies
-
-To create the same views as the Django tutorial, we'll need the following libraries : 
- - [Axios](https://github.com/axios/axios): An awesome library to make requests. 
- - [React Router](https://reactrouter.com/): For client side navigation
- - [react-query](https://mui.com/): Painless server side synchronization
- - [Material UI](https://mui.com/components/lists/): Not strictly necessary, but great for decent UI without beging a designer
-
-Note: None of these are *strictly* necessary, but this is may go to setup when I need to quicly build a small SPA. I must say I pretty satisfied with it, but if you have any feedback [Reach out on Twitter](https://twitter.com/home) 🐦! 
-
-
-### Setting up react-query
-
-First we'll quickly set up react-query : 
-
- - Create the default query function
- - I like to put these kind of stuff in an `utils` folder
-
- ```typescript
-
-// utils/queryFn
-
-import axios from "axios";
-
-// We use the built-in QueryFunction type from `react-query` so we don't have to set it up oursevle
-import { QueryFunction } from "react-query";
-
-export const queryFn: QueryFunction = async ({ queryKey }) => {
-  const { data } = await axios.get(`http://localhost:80/${queryKey[0]}`);
-  return data;
-};
-
- ```
- - When using react query for quering the app, we simply need to pass the endpoint we want to query
- - Then to finish setting up react-query we simply write our app into a client provider
-
-```typescript
-
-// index.tsx
-
-import React from "react";
-import ReactDOM from "react-dom";
-import "./index.css";
-import App from "./App";
-import reportWebVitals from "./reportWebVitals";
-import { queryFn } from "./utils/queryFn";
-import { QueryClient, QueryClientProvider } from "react-query";
-
-// Configuring the queryclient to use
-// our query function
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      queryFn: queryFn,
-    },
-  },
-});
-
-ReactDOM.render(
-  <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>
-  </React.StrictMode>,
-  document.getElementById("root")
-);
-
-```
-
-### Setting up react router
-
- - We also need to set up react router so we can start working with routes :
- - Replace the content of `App.tsx` by this :
-
-
- ```typescript
-
-import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import PollIndex from "routes/Poll";
-import Results from "routes/Poll/Results";
-
-import CssBaseline from "@mui/material/CssBaseline";
-import "./App.css";
-
-function App() {
-  return (
-    <div className="App">
-      <CssBaseline />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<div>Poll Index</div<}></Route>
-          <Route path=":questionId/results/" element={<div>Poll Results</div<} />
-        </Routes>
-      </BrowserRouter>
-    </div>
-  );
-}
-
-export default App;
- ```
-
-
-Now you should see the the following at `localhost:3000/`
-
-![Poll index ](https://cdn.hashnode.com/res/hashnode/image/upload/v1637492732745/TKHnqx8R9.png?auto=compress)
-
-
-And the results at `localhost:3000/1/results` (Or any `localhost:3000/{id}/results` url for that matter)
-
-![Poll results](https://cdn.hashnode.com/res/hashnode/image/upload/v1637492803037/Yrouprs2h.png?auto=compress)
-
-
-Now all that's let to do is to build a `PollIndex` and `PollResult` component to replace the place holders! First of all let's create a template for our pages. That 
-way we can display a nice AppBar on both component while keeping the code DRY. Create a file in `src/components/templates/Page.tsx` (Creating the folders as needed).
-
-And define the Page component like so: 
-
-
-```typescript
-
-// Page.tsx
-
-
-
-```
-
- 
