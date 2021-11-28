@@ -402,3 +402,10 @@ And now using `isSuccess` we can conditionnaly render a success message :
 ## Conclusion 
 
 That's it for today, hope you learned something ! I'd love to hear about how you handle form submissions in your React projects, [Let me know on Twitter](https://twitter.com/JiBRocher) ! 
+
+## References 
+
+1. [File API documentation](https://developer.mozilla.org/en-US/docs/Web/API/File)
+2. [Axios](https://github.com/axios/axios#axios-api)
+3. [Material Linear Progress Bar](https://mui.com/api/linear-progress/)
+
