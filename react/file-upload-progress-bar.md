@@ -399,9 +399,12 @@ And now using `isSuccess` we can conditionnaly render a success message :
 </center>
 
 
-## Conclusion 
+## Thanks for reading ! 
 
-That's it for today, hope you learned something ! I'd love to hear about how you handle form submissions in your React projects, [Let me know on Twitter](https://twitter.com/JiBRocher) ! 
+That's it for today, hope you learned something ! Form handling in React is not easy, as they are so many ways to do it, and so many ways it could go wrong. All the more reason
+to keep trying and learning !
+
+**Hungry for more React tips ?** ➡️  [Follow Me on Twitter !](https://twitter.com/JiBRocher)
 
 ## References 
 
