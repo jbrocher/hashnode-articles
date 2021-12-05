@@ -453,4 +453,8 @@ That's a wrap for part 4! Hope you liked it, next time we'll see how to actually
 As always if you have any question you can reach out to me on [Twitter](https://twitter.com/JiBRocher) 🐦!
 
 
+## References
 
+1. [react-query](https://react-query.tanstack.com/overview)
+2. [react-router](https://reactrouter.com/)
+3. [FastAPI](https://fastapi.tiangolo.com/)
