@@ -1,0 +1,3 @@
+ - When launching several write operation, they must all operate on the same local dataset otherwiser they will conflict with each other
+  - You have to determine when to update the dataset and when not to
+  - This is define in my models by the initialization
