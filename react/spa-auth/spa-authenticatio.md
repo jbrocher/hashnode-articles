@@ -1,5 +1,3 @@
-# Authenticating and SPA with a REST API
-
 ## Introduction
 
  Authentication is something most web applications need, and that can be difficult to get right. Recently I had to implement it for a React app I was developing, and wanted to list the options available to me. So I did a bit of research and, to my surprise, I found it's really hard to get a straightforward answer on the proper way
@@ -87,7 +85,7 @@ I mean like this:
 
  <center>
 
- ![Monolith Sequence Diagram](https://cdn.hashnode.com/res/hashnode/image/upload/v1649321115381/80w6rzhy0.png?auto=compress)
+ ![Monolith Sequence Diagram](https://cdn.hashnode.com/res/hashnode/image/upload/v1649522722644/rhh797gOE.jpg?auto=compress)
 
  <small>Monolothic auth sequence diagram</small>
 
@@ -115,7 +113,7 @@ But this was necessary, and now we'got all the context we need to review the ava
 
 This is the simplest approach, and closely resembles the monolithical one. Here's how it looks : 
 
-![SPA Stateful cookie](https://cdn.hashnode.com/res/hashnode/image/upload/v1649321222030/03F_wPU3C.png?auto=compress)
+![SPA Stateful cookie](https://cdn.hashnode.com/res/hashnode/image/upload/v1649522764299/SzZkNbYBp.jpg?auto=compress)
 
 As with the monolithic architecture, the API creates a stateful session, and a Session Cookie 🍪, with the session ID. The only difference is that the UI is now provided 
 by the SPA. It is a big difference though because: 
@@ -241,7 +239,7 @@ a dedicated article listing the patterns associated with this architecture
 
 In the meantime, the OAuth2 spec has a [great section](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-browser-based-apps#section-6.2) on the subject if you'd like to know more. 
 
-### Auth provider
+### Using an Authentication Provider
 
 Finally, As we've seen with the previous patterns, Authenticating an SPA is not as straightforward as it should be. If you don't want to invest too much time
 looking for the perfect solution, you can always use an Authentication and Authorization SaaS. Most of them come with out-of-the-box integrations 
@@ -260,6 +258,8 @@ Most of them rely on OpenID Connect behind the scenes, meaning the integration w
  - [Keycloack](https://www.keycloak.org/): Open source, yay! 
 
 
+
+--- 
 
 ## Conclusion
 
